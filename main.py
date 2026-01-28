@@ -1,39 +1,43 @@
-
 from flask import Flask, render_template, jsonify, request
-from openai import OpenAI
-
+import requests
+import json
 
 app = Flask(__name__)
-client = OpenAI(api_key="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")
+
+OPENROUTER_API_KEY = "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"
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
-
-@app.route("/api", methods=["GET", "POST"])
+@app.route("/api", methods=["POST"])
 def qa():
-    if request.method == "POST":
-        question = request.json.get("question")
+    question = request.json.get("question")
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "openai/gpt-4o-mini",   
+            "messages": [
                 {"role": "user", "content": question}
             ]
-        )
+        }
+    )
 
-        answer = response.choices[0].message.content
+    result = response.json()
 
-        return jsonify({
-            "question": question,
-            "answer": answer
-        })
+
+    answer = result["choices"][0]["message"]["content"]
 
     return jsonify({
-        "result": "Ask me anything!"
+        "question": question,
+        "answer": answer
     })
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(debug=True)
